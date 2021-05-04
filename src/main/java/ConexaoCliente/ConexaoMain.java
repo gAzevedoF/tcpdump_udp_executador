@@ -8,7 +8,7 @@ public class ConexaoMain {
     public static void main(String[] args) throws UnknownHostException {
         Scanner resposta = new Scanner(System.in);
 
-        System.out.println("===INICIANDO SERVIDOR===");
+        System.out.println("===INICIANDO CLIENTE===");
         System.out.println("DIGITE A PORTA DESEJADA: ");
 //        int porta = resposta.nextInt();
         int porta = 3300;
@@ -23,13 +23,13 @@ public class ConexaoMain {
 
         System.out.println("DIGITE O NOME DESEJADO PARA O ARQUIVO DE RESPOSTA: ");
 //        String nomeArquivo = resposta.next();
-        String nomeArquivo = "resposta.txt";
+        String nomeArquivo = "resposta";
 
         System.out.println("DIGITE O COMANDO TCPDUMP QUE SERÁ EXECUTADO: ");
 //        String comando = resposta.next();
         String comando = "ping 8.8.8.8";
 
-        Conexao c = new Conexao(porta, ipServidor, tamanho, nomeArquivo, comando);
+        ConexaoCliente c = new ConexaoCliente(porta, ipServidor, tamanho, nomeArquivo, comando);
     }
 
 }

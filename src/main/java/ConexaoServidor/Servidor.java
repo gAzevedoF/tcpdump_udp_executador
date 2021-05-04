@@ -9,53 +9,49 @@ import java.util.concurrent.TimeUnit;
 
 public class Servidor implements Runnable {
 
-    private int porta;
-    private int tamanho;
-    private DatagramSocket socket;
+    private final int porta;
+    private final int tamanhoBufferEstimado;
+    private DatagramSocket socketUDP;
 
     private static final String REGRA_DE_SEPARACAO_PARA_COMANDO = " ";
 
-    public Servidor(int porta, int tamanho) {
+    public Servidor(int porta, int tamanhoBufferEstimado) {
         this.porta = porta;
-        this.tamanho = tamanho;
-        this.socket = null;
+        this.tamanhoBufferEstimado = tamanhoBufferEstimado;
+        this.socketUDP = null;
     }
 
     @Override
     public void run() {
         while (true) {
-            byte[] bufferReceber = new byte[this.tamanho];
-
+            byte[] bufferParaReceber = new byte[this.tamanhoBufferEstimado];
             try {
-                socket = new DatagramSocket(this.porta);
-                System.out.println("SERVIDOR COM IP " + InetAddress.getLocalHost().getHostAddress() + " SUBIU NA PORTA " + this.porta);
-            } catch (SocketException | UnknownHostException e) {
-                e.printStackTrace();
-            }
-            while (true) {
-                DatagramPacket pacoteRecebido = new DatagramPacket(bufferReceber, bufferReceber.length);
+                socketUDP = new DatagramSocket(this.porta);
 
-                try {
-                    System.out.println("AGUARDANDO CLIENTE");
-                    socket.receive(pacoteRecebido);
-                    System.out.println("COMANDO RECEBIDO DO CLIENTE " + pacoteRecebido.getAddress().getHostAddress());
+                while (true) {
+                    DatagramPacket pacoteRecebidoDoCliente = new DatagramPacket(bufferParaReceber, bufferParaReceber.length);
 
-                    this.executarComando(pacoteRecebido);
+                    System.out.println("SERVIDOR COM IP " + InetAddress.getLocalHost().getHostAddress() + " AGUARDANDO CLIENTE NA PORTA " + this.porta);
 
-                    InetAddress enderecoIP = pacoteRecebido.getAddress();
-                    int porta = pacoteRecebido.getPort();
+                    socketUDP.receive(pacoteRecebidoDoCliente);
+                    System.out.println("COMANDO RECEBIDO DO CLIENTE " + pacoteRecebidoDoCliente.getAddress().getHostAddress());
+
+                    this.executarComando(pacoteRecebidoDoCliente);
+
+                    int porta = pacoteRecebidoDoCliente.getPort();
 
                     byte[] arquivoGerado = this.converterArquivoEmBytes();
 
-                    DatagramPacket pacoteEnviado = new DatagramPacket(arquivoGerado, arquivoGerado.length, pacoteRecebido.getAddress(), porta);
-                    socket.send(pacoteEnviado);
-
-                } catch (Exception e) {
-
-                    continue;
+                    System.out.println("ENVIANDO ARQUIVO PARA O CLIENTE " + pacoteRecebidoDoCliente.getAddress().getHostAddress());
+                    DatagramPacket pacoteEnviado = new DatagramPacket(arquivoGerado, arquivoGerado.length, pacoteRecebidoDoCliente.getAddress(), porta);
+                    socketUDP.send(pacoteEnviado);
                 }
+
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
             }
         }
+
     }
 
     public byte[] converterArquivoEmBytes() throws IOException {

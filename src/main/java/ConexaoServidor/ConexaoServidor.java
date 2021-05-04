@@ -1,8 +1,19 @@
 package ConexaoServidor;
 
+import java.util.Observable;
 import java.util.Scanner;
 
-public class ConexaoMain {
+public class ConexaoServidor extends Observable {
+
+    private int porta;
+    private int tamanho;
+
+    public ConexaoServidor(int porta, int tamanho) {
+        this.porta = porta;
+        this.tamanho = tamanho;
+        new Thread(new Servidor(porta, tamanho)).start();
+    }
+
     public static void main(String[] args) {
         Scanner resposta = new Scanner(System.in);
 

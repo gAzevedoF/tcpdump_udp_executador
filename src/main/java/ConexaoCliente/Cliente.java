@@ -7,61 +7,69 @@ import java.io.IOException;
 import java.net.*;
 
 class Cliente implements Runnable {
-    private int porta;
-    private  InetAddress ipServidor;
-    private  int tamanho;
-    private String nomeArquivo;
-    private String comando;
-    private DatagramSocket socket;
+    private final int porta;
+    private final InetAddress ipServidor;
+    private final int tamanhoBufferEstimado;
+    private final String nomeArquivo;
+    private final String comando;
+    private DatagramSocket socketUDP;
 
-    public Cliente(int porta, InetAddress ipServidor, int tamanho, String nomeArquivo, String comando) {
+    public Cliente(int porta, InetAddress ipServidor, int tamanhoBufferEstimado, String nomeArquivo, String comando) {
         this.porta = porta;
         this.ipServidor = ipServidor;
-        this.tamanho = tamanho;
+        this.tamanhoBufferEstimado = tamanhoBufferEstimado;
         this.nomeArquivo = nomeArquivo;
         this.comando = comando;
-        this.socket = null;
+        this.socketUDP = null;
     }
 
     @Override
     public void run() {
-        byte[] bufferReceber = new byte[tamanho];
+        byte[] bufferParaReceber = new byte[tamanhoBufferEstimado];
 
         try {
-            this.socket = new DatagramSocket();
-            byte[] enviar = comando.getBytes();
-            DatagramPacket enviando = new DatagramPacket(enviar, enviar.length, ipServidor , porta);
-            socket.send(enviando);
-            DatagramPacket recebido = new DatagramPacket(bufferReceber, bufferReceber.length);
-            socket.receive(recebido);
-            this.criarArquivo(recebido, nomeArquivo);
+            this.socketUDP = new DatagramSocket();
+
+            byte[] bufferParaEnviar = comando.getBytes();
+            DatagramPacket pacoteParaEnviar = new DatagramPacket(bufferParaEnviar,
+                                                                bufferParaEnviar.length,
+                                                                ipServidor,
+                                                                porta);
+
+            socketUDP.send(pacoteParaEnviar);
+            System.out.println("COMANDO ENVIADO PARA O SERVIDOR NA PORTA " + porta);
+
+            DatagramPacket pacoteRecebidoDoServidor = new DatagramPacket(bufferParaReceber, bufferParaReceber.length);
+            socketUDP.receive(pacoteRecebidoDoServidor);
+            System.out.println("ARQUIVO RECEBIDO DO SERVIDOR");
+
+            this.criarArquivo(pacoteRecebidoDoServidor);
+            System.out.println("ARQUIVO SALVO COMO " + this.nomeArquivo + ".pcap");
+            System.out.println("DESEJA EXECUTAR OUTRO COMANDO ? [1] = SIM, [2] = NÃO");
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void criarArquivo(DatagramPacket recebido, String nomeArquivo) throws IOException {
+    private void criarArquivo(DatagramPacket pacoteRecebido) throws IOException {
         int cont = 0;
-        while (recebido.getData()[cont] != 0) {
+        while (pacoteRecebido.getData()[cont] != 0) {
             cont++;
         }
 
-        byte[] listaAjustada = new byte[cont];
-        int i = 0;
-        for (Byte dado: recebido.getData()) {
-            if(dado != 0){
-                listaAjustada[i] = dado;
-                i++;
+        byte[] dadosRecebidosSemComplementos = new byte[cont];
+
+        for (int i = 0; i <= cont ; i++) {
+            if(pacoteRecebido.getData()[i] != 0) {
+                dadosRecebidosSemComplementos[i] = pacoteRecebido.getData()[i];
             }
         }
 
-        File file = new File(nomeArquivo);
-        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file));
-        bos.write(listaAjustada);
+        File arquivo = new File(this.nomeArquivo + ".pcap");
+        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(arquivo));
+        bos.write(dadosRecebidosSemComplementos);
         bos.close();
 
-        String resposta = new String(recebido.getData());
-        System.out.println("ARQUIVO RECEBIDO E SALVO COMO " + nomeArquivo);
     }
 }
